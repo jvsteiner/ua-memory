@@ -1,0 +1,5 @@
+{
+  "name": "ua-memory",
+  "version": "0.1.0",
+  "description": "Injects a codebase architecture card at session start, built from an Understand-Anything map."
+}
