@@ -1,9 +1,13 @@
 #!/usr/bin/env node
 // SessionStart hook. Prints the codebase architecture card as additionalContext.
 //
-// It must never break a session: any failure exits 0 with no output, except a
-// UA schema break, which is reported as one line so it cannot pass unnoticed.
-import { buildCardFor } from "../dist/session.js";
+// Nothing here may reach the user's session as noise. The import is dynamic and
+// inside the try, because a static import of a missing dist/ fails before any
+// code runs and dumps a stack trace to stderr — which is exactly what a fresh
+// clone with no build did. The only failure worth reporting is a UA schema
+// break, because rendering a wrong map is worse than rendering none.
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const emit = (text) =>
   process.stdout.write(
@@ -13,6 +17,8 @@ const emit = (text) =>
   );
 
 try {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const { buildCardFor } = await import(join(here, "..", "dist", "session.js"));
   const card = buildCardFor(process.cwd());
   if (card) emit(card);
 } catch (error) {

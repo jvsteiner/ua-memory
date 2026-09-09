@@ -1,5 +1,12 @@
 {
   "name": "ua-memory",
   "version": "0.1.0",
-  "description": "Injects a codebase architecture card at session start, built from an Understand-Anything map."
+  "description": "Injects a codebase architecture card at session start, built from an Understand-Anything map. Adds a CLI for blast radius, file lookups and layer queries.",
+  "author": {
+    "name": "Jamie Steiner",
+    "url": "https://github.com/jvsteiner"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/jvsteiner/ua-memory",
+  "keywords": ["context", "codebase", "architecture", "knowledge-graph", "understand-anything"]
 }
