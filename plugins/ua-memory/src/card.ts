@@ -1,25 +1,32 @@
 import type { LoadedMap, UaLayer } from "./graph.js";
 
 /**
- * Hard ceiling for the card, in tokens.
+ * Claude Code caps every hook output string — `additionalContext`, plain
+ * stdout, `systemMessage` — at 10,000 characters. Past that it does not
+ * truncate: it writes the whole string to a file and injects a short preview
+ * plus the file path instead, exactly as it handles oversized Bash output.
  *
- * The point of this tool is large codebases, so the ceiling has to be large
- * enough to describe one: a 157-file map renders at ~2,000 tokens and a
- * 274-file map at ~4,000, and both are small next to what this is for.
- * 6,000 leaves real room while staying a fraction of a context window.
+ * This is documented in the hooks reference, and it is not a soft limit. A
+ * 16,028-character card for this repo spilled to a file in five separate
+ * sessions; the model saw two of ten layer names and a path it would have had
+ * to open. The card looked broken while the hook was working perfectly.
  *
- * It is enforced in `renderCard`, not only in a test. The first version capped
- * it at 2,500 and checked that in a test against one small fixture, so a bigger
- * real map silently rendered 60% over — the exact silent growth the cap existed
- * to stop. A ceiling only guarded by a test is not a ceiling.
+ * So the real unit is characters, not tokens, and the number is not ours to
+ * choose. An earlier version set a 6,000-token budget — about 24,000
+ * characters — reasoning about context cost, which is the wrong constraint
+ * entirely.
  */
-export const TOKEN_BUDGET = 6000;
+export const HARNESS_CHAR_CAP = 10000;
+
+/** Our ceiling, with room under the cap for the JSON envelope and any drift. */
+export const CHAR_BUDGET = 9500;
 
 /**
  * Per-layer file caps tried in order when the card overruns. Layer names and
- * descriptions are never cut: they are the part that tells an agent where
- * things live, and they cost ~720 tokens for ten layers. File lists are the
- * part that scales with the repo, so they are what gives.
+ * descriptions are never cut. On this repo's own map they are 2,871 characters
+ * against 11,945 for the file paths — the cheap half, and the half that
+ * actually says where things live. File lists scale with the repo, so file
+ * lists are what gives.
  */
 const FILE_CAPS = [Number.POSITIVE_INFINITY, 40, 25, 15, 10, 6, 3, 1, 0];
 
@@ -41,7 +48,7 @@ const MAX_CHANGED_LISTED = 10;
 export function renderCard(primary: LoadedMap, others: LoadedMap[], input: CardInput): string {
   for (const cap of FILE_CAPS) {
     const card = build(primary, others, input, cap);
-    if (estimateTokens(card) <= TOKEN_BUDGET) return card;
+    if (card.length <= CHAR_BUDGET) return card;
   }
   // Even with no file lists it does not fit. Layers and descriptions are the
   // floor — returning them over budget beats returning nothing.
@@ -72,8 +79,8 @@ function build(
   }
   if (Number.isFinite(fileCap)) {
     out.push(
-      "File lists below are shortened to fit the context budget. " +
-        "Run `ua-memory layer <name>` for a layer's full list.",
+      "File lists below are shortened to fit the 10,000 character limit on " +
+        "session-start context. `ua-memory layer <name>` reports a full list.",
     );
   }
   out.push("");
@@ -106,16 +113,23 @@ function build(
     }
   }
 
+  // Factual statements, not instructions. Claude Code's hooks reference warns
+  // that injected text framed as out-of-band system commands trips the
+  // prompt-injection defences, and the text is then surfaced to the user
+  // instead of being used as context.
   out.push("");
-  out.push("## How to read this");
+  out.push("## About this map");
   out.push(
-    "- Import and call edges come from tree-sitter parsing. Treat them as fact.",
+    "- The import and call edges in this map were extracted by tree-sitter from the source.",
   );
   out.push(
-    "- Summaries, tags and layer names were written by an LLM. Treat them as hints and verify before relying on one.",
+    "- The summaries, tags and layer names in this map were written by an LLM and can be out of date.",
   );
   out.push(
-    "- For more detail, run `ua-memory file <path>`, `ua-memory impact <path>` or `ua-memory layer <name>`. Never read the graph JSON directly — it is about 100,000 tokens.",
+    "- This map records no dynamic `import()` edges and no re-exports through a barrel file, so some real dependents are missing from it.",
+  );
+  out.push(
+    "- The `ua-memory` command reports more: `ua-memory file <path>`, `ua-memory impact <path>`, `ua-memory layer <name>`. The graph JSON behind this card is about 100,000 tokens.",
   );
 
   return out.join("\n");

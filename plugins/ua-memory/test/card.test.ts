@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { loadMap } from "../src/graph.js";
-import { estimateTokens, renderCard, TOKEN_BUDGET } from "../src/card.js";
+import { CHAR_BUDGET, HARNESS_CHAR_CAP, renderCard } from "../src/card.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const map = loadMap(join(here, "fixtures", "dashboard-ua"));
@@ -10,8 +10,23 @@ const map = loadMap(join(here, "fixtures", "dashboard-ua"));
 describe("renderCard", () => {
   const card = renderCard(map, [], { head: map.meta!.gitCommitHash, changedFiles: [] });
 
-  it("stays inside the token budget", () => {
-    expect(estimateTokens(card)).toBeLessThan(TOKEN_BUDGET);
+  it("stays inside the character budget", () => {
+    expect(card.length).toBeLessThan(CHAR_BUDGET);
+  });
+
+  it("keeps the budget under the harness cap that spills output to a file", () => {
+    expect(CHAR_BUDGET).toBeLessThan(HARNESS_CHAR_CAP);
+    expect(HARNESS_CHAR_CAP).toBe(10000);
+  });
+
+  it("states what the map is rather than instructing the reader", () => {
+    // Claude Code's hooks reference warns that text framed as out-of-band
+    // system commands trips prompt-injection defences, and the card is then
+    // surfaced to the user instead of used as context. Facts only.
+    expect(card).not.toMatch(/\bTreat (them|it) as\b/);
+    expect(card).not.toMatch(/\bNever read\b/);
+    expect(card).toMatch(/were extracted by tree-sitter/);
+    expect(card).toMatch(/written by an LLM/);
   });
 
   it("does not trim a map that already fits", () => {
@@ -40,9 +55,14 @@ describe("renderCard", () => {
     expect(stale).toContain("src/ui/Button.tsx");
   });
 
-  it("states the trust rule", () => {
+  it("says which parts of the map are parsed and which are LLM-written", () => {
     expect(card).toMatch(/tree-sitter/);
-    expect(card).toMatch(/hint/i);
+    expect(card).toMatch(/can be out of date/);
+  });
+
+  it("names the two gaps that make an empty dependent list untrustworthy", () => {
+    expect(card).toMatch(/import\(\)/);
+    expect(card).toMatch(/barrel/);
   });
 
   it("flags that tests are outside the map", () => {
@@ -83,7 +103,15 @@ describe("renderCard on a map too big for the budget", () => {
   const card = renderCard(big, [], { head: null, changedFiles: null });
 
   it("comes in under budget anyway", () => {
-    expect(estimateTokens(card)).toBeLessThan(TOKEN_BUDGET);
+    expect(card.length).toBeLessThan(CHAR_BUDGET);
+  });
+
+  it("spends the budget on layer descriptions before file lists", () => {
+    // On the real sif map the descriptions are 2,871 chars and the file paths
+    // 11,945. The descriptions are what say where things live, so they are
+    // kept whole and the file lists are what gets cut.
+    const descriptionChars = big.graph.layers.reduce((n, l) => n + l.description.length, 0);
+    expect(card.length).toBeGreaterThan(descriptionChars);
   });
 
   it("still names every layer and keeps every description", () => {

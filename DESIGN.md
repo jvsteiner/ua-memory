@@ -166,11 +166,13 @@ Each step has a check. Do not start the next one until the check passes.
    *Check:* a test fails loudly on a missing `layers` key or a dangling edge.
 3. **`src/card.ts`.** Render the card.
    *Check:* a test asserts the card is under budget and names all 10 layers.
-   The budget is 6,000 tokens and `renderCard` enforces it by shortening file
-   lists; layer names and descriptions are never cut. An earlier version capped
-   it at 2,500 and only checked that in a test against the small fixture, so
-   the 274-file root map rendered 60% over in silence. A ceiling only guarded
-   by a test is not a ceiling.
+   The budget is **9,500 characters**, because Claude Code caps every hook
+   output string at 10,000 and spills anything longer to a file. That is the
+   real constraint and it is not ours to choose; reasoning about context cost
+   instead produced a 6,000-token budget, roughly 24,000 characters, and a
+   16,028-character card that spilled in five sessions while the hook itself
+   worked perfectly. `renderCard` enforces the budget by shortening file lists;
+   layer names and descriptions are never cut.
 4. **The hook.** Wire `hooks/session-start.mjs`.
    *Check:* run it by hand in `dashboard/`, confirm valid JSON on stdout.
    Then run it in `/tmp` and confirm empty output and exit 0.

@@ -18,18 +18,23 @@ does not do, because its graph is context-on-request behind slash commands.
 The whole graph is far too big to inject. These are measured on a real 157-file
 map, not estimated:
 
-| Map | Files | Card |
-|---|---|---|
-| A dashboard package | 157 | ~2,000 tokens |
-| A whole Rust + TS repo | 274 | ~4,000 tokens |
-| The raw graph behind either | — | ~101,000 tokens |
+**Claude Code caps every hook output string at 10,000 characters.** Past that
+it does not truncate — it writes the whole string to a file and injects a
+preview plus the file path, the same as oversized Bash output. So the budget is
+in characters, and the number is not ours to pick.
 
-`TOKEN_BUDGET` in `src/card.ts` caps the card at **6,000 tokens**, and
-`renderCard` enforces it rather than only asserting it in a test. If a map is
-too big, per-layer file lists are shortened — first to 40 entries, then 25, 15
-and down — until it fits. Layer names and descriptions are never cut, because
-they are the part that says where things live. The card says when it trimmed,
-and `ua-memory layer <name>` gives any full list back.
+| Map | Files | Card | |
+|---|---|---|---|
+| A dashboard package | 157 | 8,223 chars | fits whole |
+| A whole Rust + TS repo | 274 | 9,369 chars | file lists trimmed |
+| The raw graph behind either | — | ~400,000 chars | never injected |
+
+`CHAR_BUDGET` in `src/card.ts` is 9,500, and `renderCard` enforces it. When a
+map is too big, per-layer file lists are shortened — 40 entries, then 25, 15
+and down — until it fits. Layer names and descriptions are never cut: on the
+sif map they are 2,871 characters against 11,945 for the file paths, so they
+are the cheap half and the half that says where things live. The card says when
+it trimmed, and `ua-memory layer <name>` gives any full list back.
 
 ## Install
 
@@ -114,7 +119,7 @@ quietly.
 ```bash
 cd plugins/ua-memory
 npm install
-npm test          # 41 tests
+npm test          # 45 tests
 npm run typecheck
 npm run build     # dist/ is committed; commit it after changing src/
 ```

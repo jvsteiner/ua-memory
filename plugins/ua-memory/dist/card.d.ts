@@ -1,18 +1,23 @@
 import type { LoadedMap } from "./graph.js";
 /**
- * Hard ceiling for the card, in tokens.
+ * Claude Code caps every hook output string — `additionalContext`, plain
+ * stdout, `systemMessage` — at 10,000 characters. Past that it does not
+ * truncate: it writes the whole string to a file and injects a short preview
+ * plus the file path instead, exactly as it handles oversized Bash output.
  *
- * The point of this tool is large codebases, so the ceiling has to be large
- * enough to describe one: a 157-file map renders at ~2,000 tokens and a
- * 274-file map at ~4,000, and both are small next to what this is for.
- * 6,000 leaves real room while staying a fraction of a context window.
+ * This is documented in the hooks reference, and it is not a soft limit. A
+ * 16,028-character card for this repo spilled to a file in five separate
+ * sessions; the model saw two of ten layer names and a path it would have had
+ * to open. The card looked broken while the hook was working perfectly.
  *
- * It is enforced in `renderCard`, not only in a test. The first version capped
- * it at 2,500 and checked that in a test against one small fixture, so a bigger
- * real map silently rendered 60% over — the exact silent growth the cap existed
- * to stop. A ceiling only guarded by a test is not a ceiling.
+ * So the real unit is characters, not tokens, and the number is not ours to
+ * choose. An earlier version set a 6,000-token budget — about 24,000
+ * characters — reasoning about context cost, which is the wrong constraint
+ * entirely.
  */
-export declare const TOKEN_BUDGET = 6000;
+export declare const HARNESS_CHAR_CAP = 10000;
+/** Our ceiling, with room under the cap for the JSON envelope and any drift. */
+export declare const CHAR_BUDGET = 9500;
 /** Roughly four characters per token. Good enough to hold a budget line. */
 export declare function estimateTokens(text: string): number;
 export interface CardInput {

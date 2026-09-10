@@ -12,7 +12,7 @@
       "name": "ua-memory",
       "source": "./plugins/ua-memory",
       "description": "Injects a ~2,000 token architecture card at session start, built from an Understand-Anything map, plus a CLI for blast radius and file lookups.",
-      "version": "0.3.1"
+      "version": "0.3.2"
     }
   ]
 }
