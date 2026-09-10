@@ -68,6 +68,40 @@ UA then compares the map's commit against `HEAD` at session start and refreshes
 when source structure actually changed. It grades each changed file
 `NONE` / `COSMETIC` / `STRUCTURAL`, so a comment edit does not trigger a rebuild.
 
+## omp / Pi
+
+omp (`@oh-my-pi/pi-coding-agent`) borrows a lot from Claude Code — it loads
+`.claude/skills`, `.claude/commands`, `.claude/settings.json`, `CLAUDE.md`, and
+even hooks from Claude Code marketplace plugins. It does **not** run
+SessionStart hooks: that bridge covers tool hooks only, and the string
+`SessionStart` appears nowhere in the omp binary.
+
+So the card reaches omp through an extension instead:
+
+```bash
+ua-memory omp install
+```
+
+That writes a three-line shim into `~/.omp/agent/extensions/` which re-exports
+the adapter shipped in this package, by absolute path. All the real code stays
+here, under test. Restart omp and the card is in its system prompt.
+
+```bash
+ua-memory omp status      # where it is installed and what it loads
+ua-memory omp uninstall   # remove it
+```
+
+`--dir <path>` overrides the extensions directory.
+
+The adapter hooks `before_agent_start`, the same seam `pi-output-styles` uses
+to swap the personality slot. One thing differs from the Claude Code side and
+matters: `before_agent_start` fires **every turn**, not once per session, so
+the adapter checks for the card's heading before adding it. Without that guard
+the card would stack up once per turn for a whole session.
+
+Everything above the delivery seam — finding the map, rendering, trimming — is
+the same code both agents run.
+
 ## The CLI
 
 The card says where things live. The CLI answers the follow-up questions. It
@@ -119,7 +153,7 @@ quietly.
 ```bash
 cd plugins/ua-memory
 npm install
-npm test          # 45 tests
+npm test          # 60 tests
 npm run typecheck
 npm run build     # dist/ is committed; commit it after changing src/
 ```

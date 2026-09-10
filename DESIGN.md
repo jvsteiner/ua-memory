@@ -233,6 +233,29 @@ suite red rather than passing silently.
   It is a starting set, not a complete one. The caveat says so on every empty
   result, but a non-empty result carries the same risk and says less.
 
+## 7a. Second agent: omp / Pi
+
+omp does not run Claude Code SessionStart hooks, so the card needs a second
+delivery seam. Verified by asking omp directly whether the card was in its
+context: NO before the adapter, and the correct layer names after.
+
+The split that made this cheap was already there. `buildCardFor(cwd)` is the
+whole job — find the maps, pick one, render, trim — and only the last step is
+agent-specific. The Claude Code hook prints JSON on stdout; the omp adapter
+returns a replacement `systemPrompt` from `before_agent_start`. Neither knows
+anything the other does not.
+
+Two things worth remembering:
+
+- `before_agent_start` fires every turn, where SessionStart fires once. The
+  adapter checks for the card's heading before appending, or the card stacks up
+  once per turn.
+- The installed file is a three-line generated shim re-exporting an absolute
+  path, not a copy of the adapter. A symlink would resolve relative imports
+  through its target but a copy would not, and users copy things. It carries a
+  signature line so the installer will replace its own file and refuse to
+  clobber anyone else's.
+
 ## 8. Explicitly out of scope
 
 - No MCP server. The CLI is the query surface. MCP stays open for later; the

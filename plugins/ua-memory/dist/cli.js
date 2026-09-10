@@ -2,6 +2,7 @@ import { relative } from "node:path";
 import { renderCard } from "./card.js";
 import { changedFilesSince, gitHead } from "./git.js";
 import { findGitRoot, findMapDirs, loadMap, pickPrimary } from "./graph.js";
+import { defaultOmpExtensionsDir, ompInstall, ompStatus, ompUninstall } from "./omp-install.js";
 import { NO_DEPENDENTS_CAVEAT, describeFile, filesInLayer, findLayer, impact, resolveFile, where, } from "./queries.js";
 const USAGE = `ua-memory — query this repo's Understand-Anything map
 
@@ -13,12 +14,16 @@ const USAGE = `ua-memory — query this repo's Understand-Anything map
   stale                    files changed since the map was built
   tour                     the guided tour, longest to shortest (~3,800 tokens)
   doctor                   map location, freshness and data problems
+  omp <install|status|uninstall>
+                           the card for omp / Pi, which does not run
+                           Claude Code SessionStart hooks
 
 Options
   --json                   machine-readable output
   --depth <n>              impact only, default 1, max 3
   --limit <n>              where only, default 20
   --root <path>            use the map for this directory
+  --dir <path>             omp only, override the extensions directory
 `;
 function parse(argv) {
     const rest = [];
@@ -26,6 +31,7 @@ function parse(argv) {
     let depth = 1;
     let limit = 20;
     let root = null;
+    let dir = null;
     for (let i = 0; i < argv.length; i++) {
         const arg = argv[i];
         if (arg === "--json")
@@ -36,10 +42,12 @@ function parse(argv) {
             limit = Math.max(1, Number(argv[++i]) || 20);
         else if (arg === "--root")
             root = argv[++i] ?? null;
+        else if (arg === "--dir")
+            dir = argv[++i] ?? null;
         else
             rest.push(arg);
     }
-    return { command: rest.shift() ?? "help", rest, json, depth, limit, root };
+    return { command: rest.shift() ?? "help", rest, json, depth, limit, root, dir };
 }
 function loadPrimary(cwd, root) {
     const dirs = findMapDirs(root ?? cwd);
@@ -63,6 +71,8 @@ export function run(argv, cwd) {
     const args = parse(argv);
     if (args.command === "help" || args.command === "--help")
         return { out: USAGE, code: 0 };
+    if (args.command === "omp")
+        return runOmp(args);
     let primary;
     let others;
     try {
@@ -190,6 +200,49 @@ export function run(argv, cwd) {
         }
         default:
             return { out: `Unknown command "${args.command}".\n\n${USAGE}`, code: 1 };
+    }
+}
+/**
+ * omp does not run Claude Code SessionStart hooks, so the card reaches it
+ * through an extension instead. This installs a shim into omp's own extension
+ * directory pointing back at the adapter shipped here.
+ */
+function runOmp(args) {
+    const dir = args.dir ?? defaultOmpExtensionsDir();
+    const action = args.rest[0] ?? "status";
+    try {
+        switch (action) {
+            case "install": {
+                const r = ompInstall(dir);
+                return {
+                    out: `${r.replaced ? "Updated" : "Installed"} the omp adapter at ${r.path}\n` +
+                        `It loads the card from ${r.target}\n` +
+                        "Restart omp to pick it up.",
+                    code: 0,
+                };
+            }
+            case "status": {
+                const s = ompStatus(dir);
+                if (!s.installed) {
+                    return { out: `Not installed. Run \`ua-memory omp install\` to add ${s.path}`, code: 0 };
+                }
+                return {
+                    out: s.stale
+                        ? `Installed at ${s.path}, but it points at ${s.target}, which is missing. Re-run \`ua-memory omp install\`.`
+                        : `Installed at ${s.path}, loading ${s.target}`,
+                    code: s.stale ? 1 : 0,
+                };
+            }
+            case "uninstall": {
+                const r = ompUninstall(dir);
+                return { out: r.removed ? `Removed ${dir}` : "Nothing to remove.", code: 0 };
+            }
+            default:
+                return { out: `Unknown: ua-memory omp ${action}. Use install, status or uninstall.`, code: 1 };
+        }
+    }
+    catch (error) {
+        return { out: error instanceof Error ? error.message : String(error), code: 1 };
     }
 }
 function notFound(map, query) {
