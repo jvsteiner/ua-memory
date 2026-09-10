@@ -247,9 +247,13 @@ anything the other does not.
 
 Two things worth remembering:
 
-- `before_agent_start` fires every turn, where SessionStart fires once. The
-  adapter checks for the card's heading before appending, or the card stacks up
-  once per turn.
+- `before_agent_start` fires once per user message, and omp rebuilds the system
+  prompt from base each time — measured with two probes, one registered before
+  the adapter and one after, on a turn that made two tool calls. It was first
+  written up as firing every turn and accumulating, which was a guess, and the
+  test written to "prove" it fed the modified prompt back in by hand. A test
+  that constructs its own premise cannot check behaviour; only probing a live
+  omp run settled it.
 - The installed file is a three-line generated shim re-exporting an absolute
   path, not a copy of the adapter. A symlink would resolve relative imports
   through its target but a copy would not, and users copy things. It carries a

@@ -94,10 +94,11 @@ ua-memory omp uninstall   # remove it
 `--dir <path>` overrides the extensions directory.
 
 The adapter hooks `before_agent_start`, the same seam `pi-output-styles` uses
-to swap the personality slot. One thing differs from the Claude Code side and
-matters: `before_agent_start` fires **every turn**, not once per session, so
-the adapter checks for the card's heading before adding it. Without that guard
-the card would stack up once per turn for a whole session.
+to swap the personality slot. Measured behaviour: it fires **once per user
+message** — a turn with two tool calls fires it once — and omp rebuilds the
+system prompt from base each time, so nothing accumulates. The adapter still
+checks for the card's heading before adding it, as cheap insurance rather than
+because omp needs it.
 
 Everything above the delivery seam — finding the map, rendering, trimming — is
 the same code both agents run.

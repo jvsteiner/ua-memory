@@ -51,9 +51,17 @@ export default function createExtension(pi: PiHost): void {
 
       const incoming = event?.systemPrompt;
 
-      // Unlike SessionStart, before_agent_start fires every turn. Appending
-      // without this guard stacks a copy of the card per turn for the whole
-      // session. Returning undefined leaves the prompt untouched.
+      // Measured, because the guess was wrong: `before_agent_start` fires once
+      // per user message — not once per agent step — and omp rebuilds the
+      // system prompt from base each time. Two probes, one registered before
+      // this adapter and one after, showed a two-tool-call turn firing the
+      // event exactly once, with zero cards in the incoming prompt.
+      //
+      // So nothing accumulates and this check never fires today. It stays as
+      // one cheap line of insurance against omp changing that, and because
+      // appending twice would be invisible rather than loud. It is not load
+      // bearing, and a comment claiming otherwise sent someone chasing a
+      // problem that did not exist.
       if (typeof incoming === "string") {
         if (incoming.includes(CARD_MARKER)) return;
         return { systemPrompt: `${incoming}\n\n${cachedCard}` };

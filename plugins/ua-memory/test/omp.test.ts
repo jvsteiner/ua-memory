@@ -50,10 +50,15 @@ describe("the omp extension", () => {
     expect(out.systemPrompt).toContain(CARD_MARKER);
   });
 
-  // before_agent_start fires every turn, unlike SessionStart which fires once.
-  // pi-output-styles gets away with that because it replaces; this appends, so
-  // without a guard the card would stack up once per turn for a whole session.
-  it("never adds the card twice", () => {
+  // Defensive only. Measured behaviour is that omp fires this once per user
+  // message and rebuilds the prompt from base, so a prompt already carrying a
+  // card is not something omp produces today. This pins the guard anyway,
+  // because appending a second card would be silent rather than loud.
+  //
+  // Note what this test does NOT show: it feeds the modified prompt back in by
+  // hand, so it can never tell you whether omp accumulates. That question was
+  // settled by probing a live omp run, not here.
+  it("does not add the card to a prompt that already has one", () => {
     const pi = fakePi();
     createExtension(pi);
     const first = pi.fire("before_agent_start", { systemPrompt: ["base"] }, { cwd: MAPPED }) as {
