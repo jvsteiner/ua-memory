@@ -1,6 +1,6 @@
 {
   "name": "ua-memory",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Injects a codebase architecture card at session start, built from an Understand-Anything map. Adds a CLI for blast radius, file lookups and layer queries.",
   "author": {
     "name": "Jamie Steiner",
