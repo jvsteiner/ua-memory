@@ -5,15 +5,14 @@
     "email": "jvsteiner@gmail.com"
   },
   "metadata": {
-    "description": "ua-memory \u2014 put the shape of the codebase in front of the agent before it starts looking",
-    "homepage": "https://github.com/jvsteiner/ua-memory"
+    "description": "ua-memory \u2014 put the shape of the codebase in front of the agent before it starts looking"
   },
   "plugins": [
     {
       "name": "ua-memory",
       "source": "./plugins/ua-memory",
       "description": "Injects a ~2,000 token architecture card at session start, built from an Understand-Anything map, plus a CLI for blast radius and file lookups.",
-      "version": "0.3.0"
+      "version": "0.3.1"
     }
   ]
 }
