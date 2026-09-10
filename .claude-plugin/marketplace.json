@@ -5,7 +5,7 @@
     "email": "jvsteiner@gmail.com"
   },
   "metadata": {
-    "description": "ua-memory — put the shape of the codebase in front of the agent before it starts looking",
+    "description": "ua-memory \u2014 put the shape of the codebase in front of the agent before it starts looking",
     "homepage": "https://github.com/jvsteiner/ua-memory"
   },
   "plugins": [
@@ -13,7 +13,7 @@
       "name": "ua-memory",
       "source": "./",
       "description": "Injects a ~2,000 token architecture card at session start, built from an Understand-Anything map, plus a CLI for blast radius and file lookups.",
-      "version": "0.1.0"
+      "version": "0.2.0"
     }
   ]
 }

@@ -18,16 +18,18 @@ does not do, because its graph is context-on-request behind slash commands.
 The whole graph is far too big to inject. These are measured on a real 157-file
 map, not estimated:
 
-| Payload | Tokens |
-|---|---|
-| Whole graph | ~101,000 |
-| Project blurb + layer descriptions | ~720 |
-| **+ file paths grouped by layer** | **~1,900** ← the card |
-| + one line per file | ~8,600 |
+| Map | Files | Card |
+|---|---|---|
+| A dashboard package | 157 | ~2,000 tokens |
+| A whole Rust + TS repo | 274 | ~4,000 tokens |
+| The raw graph behind either | — | ~101,000 tokens |
 
-`TOKEN_BUDGET` in `src/card.ts` caps the card at 2,500 tokens, and a test fails
-if it grows past that. The session-start slot is shared with every other hook
-you have installed, so silent growth would go unnoticed.
+`TOKEN_BUDGET` in `src/card.ts` caps the card at **6,000 tokens**, and
+`renderCard` enforces it rather than only asserting it in a test. If a map is
+too big, per-layer file lists are shortened — first to 40 entries, then 25, 15
+and down — until it fits. Layer names and descriptions are never cut, because
+they are the part that says where things live. The card says when it trimmed,
+and `ua-memory layer <name>` gives any full list back.
 
 ## Install
 

@@ -165,8 +165,12 @@ Each step has a check. Do not start the next one until the check passes.
 2. **`src/graph.ts`.** Load, validate, index by id and by filePath.
    *Check:* a test fails loudly on a missing `layers` key or a dangling edge.
 3. **`src/card.ts`.** Render the card.
-   *Check:* a test asserts the card is under 2,500 tokens and names all 10
-   layers. This test is the budget guard — it must fail if the card grows.
+   *Check:* a test asserts the card is under budget and names all 10 layers.
+   The budget is 6,000 tokens and `renderCard` enforces it by shortening file
+   lists; layer names and descriptions are never cut. An earlier version capped
+   it at 2,500 and only checked that in a test against the small fixture, so
+   the 274-file root map rendered 60% over in silence. A ceiling only guarded
+   by a test is not a ceiling.
 4. **The hook.** Wire `hooks/session-start.mjs`.
    *Check:* run it by hand in `dashboard/`, confirm valid JSON on stdout.
    Then run it in `/tmp` and confirm empty output and exit 0.
@@ -218,8 +222,9 @@ suite red rather than passing silently.
   paying for the big run.
 - **Layer tags may be wrong.** Nobody has audited the 10 layers against
   Jamie's own mental model. Do that by eye before trusting the card.
-- **The card can rot into noise.** 1,900 tokens on every session, in a slot
-  that already holds 5 hooks. The token test in step 3 is what stops drift.
+- **The card can rot into noise.** 2,000–4,000 tokens on every session, in a
+  slot that already holds 5 hooks. The budget in `renderCard` is what stops
+  drift, and it trims rather than failing.
 - **UA schema may change.** It is undocumented. Pin the version. A schema
   guard in step 2 turns a silent wrong answer into a loud failure.
 - **`impact` under-reports, and always will while the two holes above stand.**

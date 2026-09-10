@@ -1,11 +1,18 @@
 import type { LoadedMap } from "./graph.js";
 /**
- * Hard ceiling for the card, in tokens. Measured baseline is ~1,700; the rest
- * is headroom for the map growing a layer or fifty files. It is a test, not a
- * guideline — see test/card.test.ts. Anything that needs more room belongs in
- * the CLI, on demand, not in every session.
+ * Hard ceiling for the card, in tokens.
+ *
+ * The point of this tool is large codebases, so the ceiling has to be large
+ * enough to describe one: a 157-file map renders at ~2,000 tokens and a
+ * 274-file map at ~4,000, and both are small next to what this is for.
+ * 6,000 leaves real room while staying a fraction of a context window.
+ *
+ * It is enforced in `renderCard`, not only in a test. The first version capped
+ * it at 2,500 and checked that in a test against one small fixture, so a bigger
+ * real map silently rendered 60% over — the exact silent growth the cap existed
+ * to stop. A ceiling only guarded by a test is not a ceiling.
  */
-export declare const TOKEN_BUDGET = 2500;
+export declare const TOKEN_BUDGET = 6000;
 /** Roughly four characters per token. Good enough to hold a budget line. */
 export declare function estimateTokens(text: string): number;
 export interface CardInput {

@@ -1,10 +1,24 @@
 /**
- * Hard ceiling for the card, in tokens. Measured baseline is ~1,700; the rest
- * is headroom for the map growing a layer or fifty files. It is a test, not a
- * guideline — see test/card.test.ts. Anything that needs more room belongs in
- * the CLI, on demand, not in every session.
+ * Hard ceiling for the card, in tokens.
+ *
+ * The point of this tool is large codebases, so the ceiling has to be large
+ * enough to describe one: a 157-file map renders at ~2,000 tokens and a
+ * 274-file map at ~4,000, and both are small next to what this is for.
+ * 6,000 leaves real room while staying a fraction of a context window.
+ *
+ * It is enforced in `renderCard`, not only in a test. The first version capped
+ * it at 2,500 and checked that in a test against one small fixture, so a bigger
+ * real map silently rendered 60% over — the exact silent growth the cap existed
+ * to stop. A ceiling only guarded by a test is not a ceiling.
  */
-export const TOKEN_BUDGET = 2500;
+export const TOKEN_BUDGET = 6000;
+/**
+ * Per-layer file caps tried in order when the card overruns. Layer names and
+ * descriptions are never cut: they are the part that tells an agent where
+ * things live, and they cost ~720 tokens for ten layers. File lists are the
+ * part that scales with the repo, so they are what gives.
+ */
+const FILE_CAPS = [Number.POSITIVE_INFINITY, 40, 25, 15, 10, 6, 3, 1, 0];
 /** Roughly four characters per token. Good enough to hold a budget line. */
 export function estimateTokens(text) {
     return Math.round(text.length / 4);
@@ -12,6 +26,16 @@ export function estimateTokens(text) {
 const WRAP_COLS = 76;
 const MAX_CHANGED_LISTED = 10;
 export function renderCard(primary, others, input) {
+    for (const cap of FILE_CAPS) {
+        const card = build(primary, others, input, cap);
+        if (estimateTokens(card) <= TOKEN_BUDGET)
+            return card;
+    }
+    // Even with no file lists it does not fit. Layers and descriptions are the
+    // floor — returning them over budget beats returning nothing.
+    return build(primary, others, input, 0);
+}
+function build(primary, others, input, fileCap) {
     const { project } = primary.graph;
     const out = [];
     out.push(`# Codebase map — ${project.name}`);
@@ -29,14 +53,26 @@ export function renderCard(primary, others, input) {
     if (primary.issues.length > 0) {
         out.push(`${primary.issues.length} data problems in the map — run \`ua-memory doctor\`.`);
     }
+    if (Number.isFinite(fileCap)) {
+        out.push("File lists below are shortened to fit the context budget. " +
+            "Run `ua-memory layer <name>` for a layer's full list.");
+    }
     out.push("");
     out.push(`## Layers (${primary.graph.layers.length})`);
     for (const layer of primary.graph.layers) {
         const files = filesIn(primary, layer);
+        const shown = Number.isFinite(fileCap) ? files.slice(0, fileCap) : files;
+        const hidden = files.length - shown.length;
         out.push("");
         out.push(`### ${layer.name} — ${files.length} files`);
         out.push(layer.description);
-        out.push(wrap(files.join(", "), WRAP_COLS));
+        if (shown.length > 0) {
+            const tail = hidden > 0 ? `, and ${hidden} more` : "";
+            out.push(wrap(`${shown.join(", ")}${tail}`, WRAP_COLS));
+        }
+        else if (hidden > 0) {
+            out.push(`${hidden} files — run \`ua-memory layer ${layer.name}\``);
+        }
     }
     if (others.length > 0) {
         out.push("");

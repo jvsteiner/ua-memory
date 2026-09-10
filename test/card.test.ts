@@ -14,6 +14,10 @@ describe("renderCard", () => {
     expect(estimateTokens(card)).toBeLessThan(TOKEN_BUDGET);
   });
 
+  it("does not trim a map that already fits", () => {
+    expect(card).not.toContain("shortened to fit");
+  });
+
   it("names every layer", () => {
     for (const layer of map.graph.layers) expect(card).toContain(layer.name);
   });
@@ -48,5 +52,53 @@ describe("renderCard", () => {
   it("mentions other maps in the repo without inlining them", () => {
     const withOther = renderCard(map, [map], { head: null, changedFiles: null });
     expect(withOther).toMatch(/also mapped/i);
+  });
+});
+
+/**
+ * A map big enough to blow the budget. The real sif root map (274 files, 1,711
+ * nodes) rendered at ~4,000 tokens, so the cap has to be enforced where the
+ * card is built, not only in a test against a small fixture — that is how the
+ * overrun got through the first time.
+ */
+function inflate(base: typeof map, factor: number): typeof map {
+  const graph = structuredClone(base.graph);
+  const extra: typeof graph.nodes = [];
+  for (const layer of graph.layers) {
+    const seed = layer.nodeIds.filter((id) => id.startsWith("file:"));
+    for (let i = 0; i < factor; i++) {
+      for (const id of seed) {
+        const clone = { ...base.byId.get(id)!, id: `${id}#${i}`, filePath: `${id.slice(5)}#${i}` };
+        extra.push(clone);
+        layer.nodeIds.push(clone.id);
+      }
+    }
+  }
+  graph.nodes.push(...extra);
+  return loadMap(join(here, "fixtures", "dashboard-ua"), graph);
+}
+
+describe("renderCard on a map too big for the budget", () => {
+  const big = inflate(map, 6);
+  const card = renderCard(big, [], { head: null, changedFiles: null });
+
+  it("comes in under budget anyway", () => {
+    expect(estimateTokens(card)).toBeLessThan(TOKEN_BUDGET);
+  });
+
+  it("still names every layer and keeps every description", () => {
+    for (const layer of big.graph.layers) {
+      expect(card).toContain(layer.name);
+      expect(card).toContain(layer.description);
+    }
+  });
+
+  it("says it was shortened, and where to get the rest", () => {
+    expect(card).toContain("shortened to fit");
+    expect(card).toMatch(/ua-memory layer/);
+  });
+
+  it("reports how many files it left out", () => {
+    expect(card).toMatch(/\d+ more/);
   });
 });
