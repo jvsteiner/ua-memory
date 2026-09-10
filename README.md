@@ -112,11 +112,19 @@ quietly.
 ## Development
 
 ```bash
+cd plugins/ua-memory
 npm install
-npm test          # 36 tests
+npm test          # 41 tests
 npm run typecheck
 npm run build     # dist/ is committed; commit it after changing src/
 ```
+
+The plugin lives in `plugins/ua-memory/`, not at the repo root. That is not
+cosmetic: with the plugin at the root, `.claude-plugin/` held both
+`marketplace.json` and `plugin.json`, and Claude Code registered the plugin but
+never loaded its hooks — `/hooks` listed every other plugin's SessionStart hook
+and none of ours. Every plugin whose hooks do register keeps the plugin in a
+subdirectory of its marketplace.
 
 Tests run against a frozen copy of a real UA run in `test/fixtures/`, not a
 hand-written fixture. UA's graph schema is undocumented, so real output is the

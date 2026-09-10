@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+defaults:
+  run:
+    working-directory: plugins/ua-memory
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -14,10 +18,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: plugins/ua-memory/package-lock.json
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
       # dist/ is committed so the plugin runs from a clone with no build step.
-      # This proves the committed output still matches src/.
       - run: npm run build
       - run: git diff --exit-code dist/
