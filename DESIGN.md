@@ -5,7 +5,7 @@
 
 ## 1. What it is
 
-A Claude Code plugin that is always on, like Hindsight memory.
+A Claude Code and Codex plugin that is always on, like Hindsight memory.
 
 Hindsight injects **remembered facts**. ua-memory injects **code structure**.
 
@@ -259,6 +259,19 @@ Two things worth remembering:
   through its target but a copy would not, and users copy things. It carries a
   signature line so the installer will replace its own file and refuse to
   clobber anyone else's.
+
+## 7b. Third agent: Codex
+
+Codex has the same delivery seam as Claude Code: a plugin-bundled
+`SessionStart` command can print JSON whose `additionalContext` becomes extra
+developer context. The existing `session-start.mjs` already produces that
+envelope, so Codex needs no adapter and no second renderer.
+
+The package has a native `.codex-plugin/plugin.json` for Codex discovery. Its
+shared `hooks/hooks.json` invokes the hook through `PLUGIN_ROOT`, which Codex
+sets for plugin hooks, and falls back to `CLAUDE_PLUGIN_ROOT` for Claude Code.
+The `additionalContextLimit` is 9,500 characters, matching the card's enforced
+budget. Users review the hook in Codex's `/hooks` interface before it runs.
 
 ## 8. Explicitly out of scope
 

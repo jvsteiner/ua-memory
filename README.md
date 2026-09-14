@@ -2,7 +2,7 @@
 
 Put the shape of the codebase in front of the agent **before** it starts looking.
 
-A Claude Code plugin that is always on, like a memory plugin. A memory plugin
+A Claude Code and Codex plugin that is always on, like a memory plugin. A memory plugin
 injects remembered facts. This injects **code structure**: at the start of every
 session it adds a small architecture card saying what the project is, what its
 layers are, and which files live in each layer.
@@ -43,6 +43,18 @@ claude
 /plugin marketplace add jvsteiner/ua-memory
 /plugin install ua-memory@ua-memory
 ```
+
+### Codex
+
+```bash
+codex plugin marketplace add jvsteiner/ua-memory
+codex plugin add ua-memory@ua-memory
+```
+
+Open `/hooks` to review and trust ua-memory's `SessionStart` hook, then begin a
+new Codex session. Codex receives the same bounded card as Claude Code. The
+hook uses Codex's `PLUGIN_ROOT` variable and falls back to
+`CLAUDE_PLUGIN_ROOT`, so one hook configuration serves both hosts.
 
 The repo ships its own `dist/`, so it runs straight from a clone with no build
 step. CI proves that committed output still matches `src/`.

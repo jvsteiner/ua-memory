@@ -1,0 +1,40 @@
+{
+  "name": "ua-memory",
+  "version": "0.5.0",
+  "description": "Puts an Understand-Anything codebase map into every coding session, with a CLI for file, impact, and layer lookups.",
+  "author": {
+    "name": "Jamie Steiner",
+    "email": "jvsteiner@gmail.com",
+    "url": "https://github.com/jvsteiner"
+  },
+  "homepage": "https://github.com/jvsteiner/ua-memory",
+  "repository": "https://github.com/jvsteiner/ua-memory",
+  "license": "MIT",
+  "keywords": [
+    "context",
+    "codebase",
+    "architecture",
+    "knowledge-graph",
+    "understand-anything"
+  ],
+  "interface": {
+    "displayName": "UA Memory",
+    "shortDescription": "Keep a codebase map in context",
+    "longDescription": "Loads a compact architecture card from an Understand-Anything map at session start, then provides file, impact, and layer lookups through the ua-memory CLI.",
+    "developerName": "Jamie Steiner",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "websiteURL": "https://github.com/jvsteiner/ua-memory",
+    "privacyPolicyURL": "https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement",
+    "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    "defaultPrompt": [
+      "Show this project's codebase map",
+      "What files would a change here affect?",
+      "Show the architecture layer for this file"
+    ],
+    "brandColor": "#2563EB"
+  }
+}
