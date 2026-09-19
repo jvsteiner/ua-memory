@@ -171,8 +171,9 @@ Each step has a check. Do not start the next one until the check passes.
    real constraint and it is not ours to choose; reasoning about context cost
    instead produced a 6,000-token budget, roughly 24,000 characters, and a
    16,028-character card that spilled in five sessions while the hook itself
-   worked perfectly. `renderCard` enforces the budget by shortening file lists;
-   layer names and descriptions are never cut.
+   worked perfectly. `renderCard` now omits file lists entirely and reports counts by node type;
+   layer names and descriptions are never cut. The budget is a reference
+   ceiling, not a truncation guarantee for arbitrarily long descriptions.
 4. **The hook.** Wire `hooks/session-start.mjs`.
    *Check:* run it by hand in `dashboard/`, confirm valid JSON on stdout.
    Then run it in `/tmp` and confirm empty output and exit 0.

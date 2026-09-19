@@ -26,4 +26,5 @@ export interface CardInput {
     /** Files changed between the map's commit and HEAD, or null if unknown. */
     changedFiles: string[] | null;
 }
+/** Layer vocabulary is always included; file lookup stays on demand. */
 export declare function renderCard(primary: LoadedMap, others: LoadedMap[], input: CardInput): string;

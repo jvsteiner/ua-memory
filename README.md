@@ -5,7 +5,7 @@ Put the shape of the codebase in front of the agent **before** it starts looking
 A Claude Code and Codex plugin that is always on, like a memory plugin. A memory plugin
 injects remembered facts. This injects **code structure**: at the start of every
 session it adds a small architecture card saying what the project is, what its
-layers are, and which files live in each layer.
+layers are, and how fresh the map is.
 
 It does not build the map. [Understand-Anything][ua] builds the map. ua-memory
 reads what UA already committed and forces it into the session — the part UA
@@ -15,26 +15,18 @@ does not do, because its graph is context-on-request behind slash commands.
 
 ## Why a card, and why this size
 
-The whole graph is far too big to inject. These are measured on a real 157-file
-map, not estimated:
+The card supplies layer names and descriptions so the agent knows what to
+ask about. File paths stay out of session context; Semble or
+`ua-memory layer <name>` can retrieve them on demand. Layer counts include
+all member node types, including schemas, tables, and documents.
 
-**Claude Code caps every hook output string at 10,000 characters.** Past that
-it does not truncate — it writes the whole string to a file and injects a
-preview plus the file path, the same as oversized Bash output. So the budget is
-in characters, and the number is not ours to pick.
+The freshness line reports the map commit and how many files changed since it
+was built. An unavailable diff is reported as unknown. The plugin does not
+refresh the underlying Understand-Anything map.
 
-| Map | Files | Card | |
-|---|---|---|---|
-| A dashboard package | 157 | 8,223 chars | fits whole |
-| A whole Rust + TS repo | 274 | 9,369 chars | file lists trimmed |
-| The raw graph behind either | — | ~400,000 chars | never injected |
-
-`CHAR_BUDGET` in `src/card.ts` is 9,500, and `renderCard` enforces it. When a
-map is too big, per-layer file lists are shortened — 40 entries, then 25, 15
-and down — until it fits. Layer names and descriptions are never cut: on the
-sif map they are 2,871 characters against 11,945 for the file paths, so they
-are the cheap half and the half that says where things live. The card says when
-it trimmed, and `ua-memory layer <name>` gives any full list back.
+`CHAR_BUDGET` in `src/card.ts` is a 9,500-character reference ceiling below
+Claude Code's 10,000-character hook output cap. Names and descriptions are
+never cut, so unusually verbose layer descriptions can still exceed it.
 
 ## Install
 

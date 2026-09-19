@@ -37,8 +37,8 @@ describe("renderCard", () => {
     for (const layer of map.graph.layers) expect(card).toContain(layer.name);
   });
 
-  it("lists file paths, not summaries", () => {
-    expect(card).toContain("src/api/client.ts");
+  it("omits file paths and node summaries", () => {
+    expect(withoutDescriptions(card, map)).not.toContain("src/api/client.ts");
     expect(card).not.toContain("Ruleset CRUD plus");
   });
 
@@ -46,13 +46,13 @@ describe("renderCard", () => {
     expect(card).toMatch(/current|up to date/i);
   });
 
-  it("warns and names changed files when HEAD has moved", () => {
+  it("reports changed-file counts without paths", () => {
     const stale = renderCard(map, [], {
       head: "deadbeef",
       changedFiles: ["src/api/client.ts", "src/ui/Button.tsx"],
     });
     expect(stale).toContain("2 file");
-    expect(stale).toContain("src/ui/Button.tsx");
+    expect(stale).not.toContain("src/ui/Button.tsx");
   });
 
   it("says which parts of the map are parsed and which are LLM-written", () => {
@@ -106,10 +106,8 @@ describe("renderCard on a map too big for the budget", () => {
     expect(card.length).toBeLessThan(CHAR_BUDGET);
   });
 
-  it("spends the budget on layer descriptions before file lists", () => {
-    // On the real sif map the descriptions are 2,871 chars and the file paths
-    // 11,945. The descriptions are what say where things live, so they are
-    // kept whole and the file lists are what gets cut.
+  it("keeps layer descriptions", () => {
+    // Descriptions stay whole regardless of the number of files.
     const descriptionChars = big.graph.layers.reduce((n, l) => n + l.description.length, 0);
     expect(card.length).toBeGreaterThan(descriptionChars);
   });
@@ -121,12 +119,39 @@ describe("renderCard on a map too big for the budget", () => {
     }
   });
 
-  it("says it was shortened, and where to get the rest", () => {
-    expect(card).toContain("shortened to fit");
-    expect(card).toMatch(/ua-memory layer/);
-  });
-
-  it("reports how many files it left out", () => {
-    expect(card).toMatch(/\d+ more/);
+  it("omits file lists even for a large map", () => {
+    expect(card).not.toContain("shortened to fit");
+    expect(card).not.toMatch(/\d+ more/);
+    for (const node of big.graph.nodes) {
+      if (node.type === "file") expect(withoutDescriptions(card, big)).not.toContain(node.filePath);
+    }
   });
 });
+
+it("counts SQL and documentation layers by node type", () => {
+  const graph = structuredClone(map.graph);
+  graph.nodes = ["schema", "table", "document"].flatMap((type) =>
+    Array.from({ length: type === "schema" ? 28 : type === "table" ? 37 : 8 }, (_, i) => ({
+      id: `${type}:${i}`, type, name: `${type}${i}`, filePath: `${type}/${i}`,
+    })),
+  );
+  graph.edges = [];
+  graph.layers = [
+    { id: "sql", name: "SQL", description: "Database structure", nodeIds: graph.nodes.filter(n => n.type !== "document").map(n => n.id) },
+    { id: "docs", name: "Docs", description: "Documentation", nodeIds: graph.nodes.filter(n => n.type === "document").map(n => n.id) },
+  ];
+  const card = renderCard(loadMap(map.uaDir, graph), [], { head: null, changedFiles: null });
+  expect(card).toContain("SQL — 28 schemas, 37 tables");
+  expect(card).toContain("Docs — 8 documents");
+  expect(card).not.toContain("0 files");
+});
+
+it("does not report an unavailable diff as no changes", () => {
+  const card = renderCard(map, [], { head: "deadbeef", changedFiles: null });
+  expect(card).toContain("freshness cannot be checked");
+  expect(card).not.toContain("No source files changed");
+});
+
+function withoutDescriptions(card: string, source: typeof map): string {
+  return source.graph.layers.reduce((text, layer) => text.replace(layer.description, ""), card);
+}
